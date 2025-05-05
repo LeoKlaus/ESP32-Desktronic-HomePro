@@ -1,0 +1,148 @@
+esphome:
+  name: desky
+  friendly_name: Desky-McDeskface
+
+esp32:
+  board: esp32-c3-devkitm-1
+  framework:
+    type: arduino
+
+# Enable logging
+logger:
+
+# Enable Home Assistant API
+api:
+  encryption:
+    key: "redacted"
+
+ota:
+  - platform: esphome
+    password: "redacted"
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+
+  # Enable fallback hotspot (captive portal) in case wifi connection fails
+  ap:
+    ssid: "Desky Fallback Hotspot"
+    password: "P2qJRUykzjoF"
+
+captive_portal:
+
+globals:
+  - id: desk_height_global
+    type: float
+    restore_value: no
+    initial_value: "0"
+  - id: desk_m_mode_global
+    type: bool
+    restore_value: no
+    initial_value: "false"
+
+sensor:
+  - platform: template
+    id: desk_height
+    name: Desk Height
+    unit_of_measurement: "cm"
+    icon: "mdi:arrow-split-horizontal"
+    device_class: "distance"
+    state_class: "measurement"
+    accuracy_decimals: 1
+    filters:
+      - multiply: 0.1
+
+uart:
+  - id: desk_uart
+    rx_pin: GPIO6
+    baud_rate: 9600
+    rx_buffer_size: 256
+    debug:
+      direction: BOTH
+      dummy_receiver: true
+      after:
+        bytes: 4
+      sequence:
+      - lambda: |-
+          //UARTDebug::log_string(direction, bytes);
+          float current_height = ((float) (bytes[2] << 8) + bytes[3]);
+          if(bytes.size() > 3) {
+            if (bytes[1] == 6) {
+              if (!id(desk_m_mode_global)) {
+                ESP_LOGD("main", "Desk entered M mode");
+                id(desk_m_mode_global) = true;
+              }
+            } else if (current_height != id(desk_height_global)) {
+              id(desk_height).publish_state(current_height);
+              id(desk_height_global) = current_height;
+              id(desk_m_mode_global) = false;
+            }
+          } else {
+            ESP_LOGD("main", "Response data only had %d bytes!!", bytes.size());
+          }
+
+
+output:
+  - platform: gpio
+    pin: GPIO7
+    id: pin_brown
+    inverted: true
+  - platform: gpio
+    pin: GPIO8
+    id: pin_gray
+    inverted: true
+  - platform: gpio
+    pin: GPIO20
+    id: pin_blue
+    inverted: true
+  - platform: gpio
+    pin: GPIO21
+    id: pin_purple
+    inverted: true
+  
+    
+button:
+  
+  - platform: output
+    output: pin_purple
+    name: Move Up
+    icon: "mdi:arrow-up-bold"
+    duration: 500ms
+
+  - platform: output
+    output: pin_gray
+    name: Move Down
+    icon: "mdi:arrow-down-bold"
+    duration: 500ms
+
+  - platform: output
+    output: pin_brown
+    name: M
+    icon: "mdi:size-m"
+    duration: 300ms
+
+  - platform: template
+    name: Preset 1
+    icon: "mdi:numeric-1"
+    on_press:
+      - output.turn_on: pin_gray
+      - output.turn_on: pin_purple
+      - delay: 300ms
+      - output.turn_off: pin_gray
+      - output.turn_off: pin_purple
+
+  - platform: output
+    output: pin_blue
+    name: Preset 2
+    icon: "mdi:numeric-2"
+    duration: 300ms
+
+  - platform: template
+    name: Preset 3
+    icon: "mdi:numeric-3"
+    on_press:
+      - output.turn_on: pin_gray
+      - output.turn_on: pin_blue
+      - delay: 300ms
+      - output.turn_off: pin_gray
+      - output.turn_off: pin_blue
