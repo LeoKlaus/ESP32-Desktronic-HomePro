@@ -28,13 +28,14 @@ This is the pinout I'm using:
 ## Additional Findings
 
 ### Controls
-| Command  | Pins to bridge (inverted) |
-|----------|---------------------------|
-| Move Up  | Purple                    |
-| M        | Brown                     |
-| Preset 1 | Purple + Gray             |
-| Preset 2 | Blue                      |
-| Preset 3 | Blue + Gray               |
+| Command   | Pins to bridge (inverted) |
+|-----------|---------------------------|
+| Move Up   | Purple                    |
+| Move Down | Gray                      |
+| M         | Brown                     |
+| Preset 1  | Purple + Gray             |
+| Preset 2  | Blue                      |
+| Preset 3  | Blue + Gray               |
 
 ### UART Messages
 
